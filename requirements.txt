@@ -12,7 +12,7 @@ colorama
 scikit-image
 colorspacious
 matplotlib
-moviepy
+moviepy==1.0.3
 imageio
 git+https://github.com/rmurai0610/diff-gaussian-rasterization-w-pose.git
 timm

@@ -1,0 +1,38 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Dataset re10k",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "generate_re10k.py",
+            "console": "integratedTerminal",
+            "args": [
+                "test",
+                "downloads/my_re10k",
+                "datasets/my_re10k"
+            ]
+        },
+        {
+            "name": "Test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.eval_pose",
+            "args": [
+                "+experiment=re10k",
+                "+evaluation=eval_pose",
+                "checkpointing.load=./pretrained_weights/mixRe10kDl3dv.ckpt",
+                "dataset/view_sampler@dataset.re10k.view_sampler=evaluation",
+                "dataset.re10k.view_sampler.index_path=assets/evaluation_index_re10k.json"
+            ],
+            "env": {
+                "NCCL_DEBUG": "INFO",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        }
+    ]
+}
