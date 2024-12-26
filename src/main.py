@@ -96,12 +96,13 @@ def train(cfg_dict: DictConfig):
         num_nodes=cfg.trainer.num_nodes,
         accelerator="gpu",
         logger=logger,
-        devices="auto",
-        strategy=(
-            "ddp_find_unused_parameters_true"
-            if torch.cuda.device_count() > 1
-            else "auto"
-        ),
+        devices=1,
+        # strategy=(
+        #     "ddp_find_unused_parameters_true"
+        #     if torch.cuda.device_count() > 1
+        #     else "auto"
+        # ),
+        strategy="auto",
         callbacks=callbacks,
         val_check_interval=cfg.trainer.val_check_interval,
         check_val_every_n_epoch=None,

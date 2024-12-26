@@ -28,7 +28,7 @@ def export_ply(
     scales: Float[Tensor, "gaussian 3"],
     rotations: Float[Tensor, "gaussian 4"],
     harmonics: Float[Tensor, "gaussian 3 d_sh"],
-    opacities: Float[Tensor, " gaussian"],
+    opacities: Float[Tensor, "gaussian"],
     path: Path,
     shift_and_scale: bool = False,
     save_sh_dc_only: bool = True,
@@ -55,6 +55,8 @@ def export_ply(
 
     dtype_full = [(attribute, "f4") for attribute in construct_list_of_attributes(0 if save_sh_dc_only else f_rest.shape[1])]
     elements = np.empty(means.shape[0], dtype=dtype_full)
+    # print(opacities.shape)
+    # print(opacities[..., None].shape)
     attributes = [
         means.detach().cpu().numpy(),
         torch.zeros_like(means).detach().cpu().numpy(),

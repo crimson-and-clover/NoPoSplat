@@ -5,6 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.test",
+            "console": "integratedTerminal",
+            "args": [
+            ],
+            "env": {
+                "NCCL_DEBUG": "INFO",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        },
+        {
             "name": "Dataset re10k",
             "type": "debugpy",
             "request": "launch",
@@ -17,10 +31,29 @@
             ]
         },
         {
-            "name": "Test",
+            "name": "Test custom",
             "type": "debugpy",
             "request": "launch",
             "module": "src.eval_pose",
+            "console": "integratedTerminal",
+            "args": [
+                "+experiment=custom",
+                "+evaluation=eval_pose",
+                "checkpointing.load=./pretrained_weights/mixRe10kDl3dv.ckpt",
+                "dataset/view_sampler@dataset.custom.view_sampler=evaluation",
+            ],
+            "env": {
+                "NCCL_DEBUG": "INFO",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        },
+        {
+            "name": "Test re10k",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.eval_pose",
+            "console": "integratedTerminal",
             "args": [
                 "+experiment=re10k",
                 "+evaluation=eval_pose",
@@ -33,6 +66,23 @@
                 "NCCL_DEBUG_SUBSYS": "ALL",
                 "CUDA_VISIBLE_DEVICES": "0"
             }
-        }
+        },
+        {
+            "name": "Train re10k",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.eval_pose",
+            "console": "integratedTerminal",
+            "args": [
+                "+experiment=re10k",
+                "wandb.mode=online",
+                "wandb.name=re10k",
+            ],
+            "env": {
+                "NCCL_DEBUG": "INFO",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        },
     ]
 }

@@ -208,10 +208,10 @@ class EncoderNoPoSplat(Encoder[EncoderNoPoSplatCfg]):
                 depths, "b v (h w) srf s -> b v h w srf s", h=h, w=w
             )
             visualization_dump["scales"] = rearrange(
-                gaussians.scales, "b v r srf spp xyz -> b (v r srf spp) xyz"
+                gaussians.scales, "b v (h w) srf spp xyz -> b v h w (srf spp) xyz", h=h, w=w
             )
             visualization_dump["rotations"] = rearrange(
-                gaussians.rotations, "b v r srf spp xyzw -> b (v r srf spp) xyzw"
+                gaussians.rotations, "b v (h w) srf spp xyzw -> b v h w (srf spp) xyzw", h=h, w=w
             )
             visualization_dump["means"] = rearrange(
                 gaussians.means, "b v (h w) srf spp xyz -> b v h w (srf spp) xyz", h=h, w=w
@@ -219,8 +219,14 @@ class EncoderNoPoSplat(Encoder[EncoderNoPoSplatCfg]):
             visualization_dump['opacities'] = rearrange(
                 gaussians.opacities, "b v (h w) srf s -> b v h w srf s", h=h, w=w
             )
+            visualization_dump['covariances'] = rearrange(
+                gaussians.covariances, "b v (h w) srf spp i j -> b v h w (srf spp) i j", h=h, w=w
+            )
+            visualization_dump['harmonics'] = rearrange(
+                gaussians.harmonics, "b v (h w) srf spp c d_sh -> b v h w (srf spp) c d_sh", h=h, w=w
+            )
 
-        return Gaussians(
+        world_gaussians = Gaussians(
             rearrange(
                 gaussians.means,
                 "b v r srf spp xyz -> b (v r srf spp) xyz",
@@ -238,6 +244,7 @@ class EncoderNoPoSplat(Encoder[EncoderNoPoSplatCfg]):
                 "b v r srf spp -> b (v r srf spp)",
             ),
         )
+        return world_gaussians
 
     def get_data_shim(self) -> DataShim:
         def data_shim(batch: BatchedExample) -> BatchedExample:

@@ -29,6 +29,95 @@ from ..visualization.color_map import apply_color_map_to_image
 from ..visualization.layout import add_border, hcat, vcat
 from .evaluation_cfg import EvaluationCfg
 from .metrics import compute_lpips, compute_psnr, compute_ssim, compute_pose_error
+from ..model.types import Gaussians
+from ..model.ply_export import export_ply
+
+
+def dump_everything(scene, visualization_dump):
+    view1_mean = rearrange(
+        visualization_dump["means"][0, 0],
+        "h w s xyz -> (h w s) xyz",
+    )
+    view1_scales = rearrange(
+        visualization_dump["scales"][0, 0],
+        "h w s xyz -> (h w s) xyz",
+    )
+    view1_rotations = rearrange(
+        visualization_dump["rotations"][0, 0],
+        "h w s xyzw -> (h w s) xyzw",
+    )
+    view1_harmonics = rearrange(
+        visualization_dump["harmonics"][0, 0],
+        "h w s c d_sh -> (h w s) c d_sh",
+    )
+    view1_opacities = rearrange(
+        visualization_dump["opacities"][0, 0],
+        "h w srf s -> (h w srf s)",
+    )
+    export_ply(
+        view1_mean,
+        view1_scales,
+        view1_rotations,
+        view1_harmonics,
+        view1_opacities,
+        Path(f"{scene}_view1.ply"),
+    )
+    view2_mean = rearrange(
+        visualization_dump["means"][0, 1],
+        "h w s xyz -> (h w s) xyz",
+    )
+    view2_scales = rearrange(
+        visualization_dump["scales"][0, 1],
+        "h w s xyz -> (h w s) xyz",
+    )
+    view2_rotations = rearrange(
+        visualization_dump["rotations"][0, 1],
+        "h w s xyzw -> (h w s) xyzw",
+    )
+    view2_harmonics = rearrange(
+        visualization_dump["harmonics"][0, 1],
+        "h w s c d_sh -> (h w s) c d_sh",
+    )
+    view2_opacities = rearrange(
+        visualization_dump["opacities"][0, 1],
+        "h w srf s -> (h w srf s)",
+    )
+    export_ply(
+        view2_mean,
+        view2_scales,
+        view2_rotations,
+        view2_harmonics,
+        view2_opacities,
+        Path(f"{scene}_view2.ply"),
+    )
+    total_mean = rearrange(
+        visualization_dump["means"][0],
+        "v h w s xyz -> (v h w s) xyz",
+    )
+    total_scales = rearrange(
+        visualization_dump["scales"][0],
+        "v h w s xyz -> (v h w s) xyz",
+    )
+    total_rotations = rearrange(
+        visualization_dump["rotations"][0],
+        "v h w s xyzw -> (v h w s) xyzw",
+    )
+    total_harmonics = rearrange(
+        visualization_dump["harmonics"][0],
+        "v h w s c d_sh -> (v h w s) c d_sh",
+    )
+    total_opacities = rearrange(
+        visualization_dump["opacities"][0],
+        "v h w srf s -> (v h w srf s)",
+    )
+    export_ply(
+        total_mean,
+        total_scales,
+        total_rotations,
+        total_harmonics,
+        total_opacities,
+        Path(f"{scene}_total.ply"),
+    )
 
 
 class PoseEvaluator(LightningModule):
@@ -75,16 +164,21 @@ class PoseEvaluator(LightningModule):
             visualization_dump=visualization_dump,
         )
 
+        dump_everything(batch["scene"][0], visualization_dump)
+
         # optimize the pose using PnPRansac
         pose_opt = get_pnp_pose(visualization_dump['means'][0, 1].squeeze(),
-                                visualization_dump['opacities'][0, 1].squeeze(),
+                                visualization_dump['opacities'][0,
+                                                                1].squeeze(),
                                 batch["context"]["intrinsics"][0, 1], h, w)
         pose_opt = pose_opt.to(self.device)
         # pose_opt = batch["context"]["extrinsics"][0, 0].clone()  # initial pose as the first view: I
 
         with torch.set_grad_enabled(True):
-            cam_rot_delta = nn.Parameter(torch.zeros([b, 1, 3], requires_grad=True, device=self.device))
-            cam_trans_delta = nn.Parameter(torch.zeros([b, 1, 3], requires_grad=True, device=self.device))
+            cam_rot_delta = nn.Parameter(torch.zeros(
+                [b, 1, 3], requires_grad=True, device=self.device))
+            cam_trans_delta = nn.Parameter(torch.zeros(
+                [b, 1, 3], requires_grad=True, device=self.device))
 
             opt_params = []
             opt_params.append(
@@ -103,7 +197,9 @@ class PoseEvaluator(LightningModule):
             pose_optimizer = torch.optim.Adam(opt_params)
 
             number_steps = 200
-            extrinsics = pose_opt.unsqueeze(0).unsqueeze(0)  # initial pose use pose_opt
+            extrinsics = pose_opt.unsqueeze(0).unsqueeze(
+                0)  # initial pose use pose_opt
+            # 用pnp计算出来的位姿，然后用高斯渲染与gt对比，迭代优化位姿
             for i in range(number_steps):
                 pose_optimizer.zero_grad()
 
@@ -122,13 +218,15 @@ class PoseEvaluator(LightningModule):
                 batch["target"]["image"] = input_images_view2
                 total_loss = 0
                 for loss_fn in self.losses:
-                    loss = loss_fn.forward(output, batch, gaussians, self.global_step)
+                    loss = loss_fn.forward(
+                        output, batch, gaussians, self.global_step)
                     total_loss = total_loss + loss
 
                 # add ssim structure loss
                 ssim_, _, _, structure = ssim(rearrange(batch["target"]["image"], "b v c h w -> (b v) c h w"),
-                                      rearrange(output.color, "b v c h w -> (b v) c h w"),
-                                      size_average=True, data_range=1.0, retrun_seprate=True, win_size=11)
+                                              rearrange(
+                                                  output.color, "b v c h w -> (b v) c h w"),
+                                              size_average=True, data_range=1.0, retrun_seprate=True, win_size=11)
                 ssim_loss = (1 - structure) * 1.0
                 total_loss = total_loss + ssim_loss
 
@@ -138,18 +236,22 @@ class PoseEvaluator(LightningModule):
                 with torch.no_grad():
                     pose_optimizer.step()
                     new_extrinsic = update_pose(cam_rot_delta=rearrange(cam_rot_delta, "b v i -> (b v) i"),
-                                                cam_trans_delta=rearrange(cam_trans_delta, "b v i -> (b v) i"),
-                                                extrinsics=rearrange(extrinsics, "b v i j -> (b v) i j")
+                                                cam_trans_delta=rearrange(
+                                                    cam_trans_delta, "b v i -> (b v) i"),
+                                                extrinsics=rearrange(
+                                                    extrinsics, "b v i j -> (b v) i j")
                                                 )
                     cam_rot_delta.data.fill_(0)
                     cam_trans_delta.data.fill_(0)
 
-                    extrinsics = rearrange(new_extrinsic, "(b v) i j -> b v i j", b=b, v=1)
+                    extrinsics = rearrange(
+                        new_extrinsic, "(b v) i j -> b v i j", b=b, v=1)
 
             # eval pose
             gt_pose = batch["context"]["extrinsics"][0, 1]
             eval_pose = extrinsics[0, 0]
-            error_t, error_t_scale, error_R = compute_pose_error(gt_pose, eval_pose)
+            error_t, error_t_scale, error_R = compute_pose_error(
+                gt_pose, eval_pose)
             error_pose = torch.max(error_t, error_R)  # find the max error
 
             all_metrics = {
@@ -181,7 +283,8 @@ class PoseEvaluator(LightningModule):
             print(auc)
 
             for overlap_tag in self.all_mertrics_sub.keys():
-                tot_e_pose = np.array(self.all_mertrics_sub[overlap_tag][f"e_pose_{method.key}"])
+                tot_e_pose = np.array(
+                    self.all_mertrics_sub[overlap_tag][f"e_pose_{method.key}"])
                 tot_e_pose = np.array(tot_e_pose)
                 thresholds = [5, 10, 20]
                 auc = pose_auc(tot_e_pose, thresholds)
@@ -197,7 +300,8 @@ class PoseEvaluator(LightningModule):
             self.running_metrics = metrics
             self.running_metric_steps = 1
 
-            self.all_mertrics = {k: [v.cpu().item()] for k, v in metrics.items()}
+            self.all_mertrics = {k: [v.cpu().item()]
+                                 for k, v in metrics.items()}
         else:
             s = self.running_metric_steps
             self.running_metrics = {
@@ -213,11 +317,13 @@ class PoseEvaluator(LightningModule):
             if getattr(self, "running_metrics_sub", None) is None:
                 self.running_metrics_sub = {overlap_tag: metrics}
                 self.running_metric_steps_sub = {overlap_tag: 1}
-                self.all_mertrics_sub = {overlap_tag: {k: [v.cpu().item()] for k, v in metrics.items()}}
+                self.all_mertrics_sub = {overlap_tag: {
+                    k: [v.cpu().item()] for k, v in metrics.items()}}
             elif overlap_tag not in self.running_metrics_sub:
                 self.running_metrics_sub[overlap_tag] = metrics
                 self.running_metric_steps_sub[overlap_tag] = 1
-                self.all_mertrics_sub[overlap_tag] = {k: [v.cpu().item()] for k, v in metrics.items()}
+                self.all_mertrics_sub[overlap_tag] = {
+                    k: [v.cpu().item()] for k, v in metrics.items()}
             else:
                 s = self.running_metric_steps_sub[overlap_tag]
                 self.running_metrics_sub[overlap_tag] = {k: ((s * v) + metrics[k]) / (s + 1)
@@ -225,7 +331,8 @@ class PoseEvaluator(LightningModule):
                 self.running_metric_steps_sub[overlap_tag] += 1
 
                 for k, v in metrics.items():
-                    self.all_mertrics_sub[overlap_tag][k].append(v.cpu().item())
+                    self.all_mertrics_sub[overlap_tag][k].append(
+                        v.cpu().item())
 
         def print_metrics(runing_metric):
             table = []

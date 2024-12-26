@@ -37,7 +37,7 @@ def evaluate(cfg_dict: DictConfig):
     cfg = load_typed_config(cfg_dict, RootCfg, {list[DatasetCfgWrapper]: separate_dataset_cfg_wrappers},)
     set_cfg(cfg_dict)
     torch.manual_seed(cfg.seed)
-    trainer = Trainer(max_epochs=-1, accelerator="gpu")
+    trainer = Trainer(max_epochs=-1, devices=1, accelerator="gpu")
     computer = MetricComputer(cfg.evaluation)
     data_module = DataModule(cfg.dataset, cfg.data_loader)
     metrics = trainer.test(computer, datamodule=data_module)

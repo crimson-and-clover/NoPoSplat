@@ -176,3 +176,5 @@ table.tex
 /baselines
 /test/*
 *.npy
+/pretrained_weights
+*.ply
