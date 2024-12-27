@@ -10,8 +10,7 @@
             "request": "launch",
             "module": "src.test",
             "console": "integratedTerminal",
-            "args": [
-            ],
+            "args": [],
             "env": {
                 "NCCL_DEBUG": "INFO",
                 "NCCL_DEBUG_SUBSYS": "ALL",
@@ -31,7 +30,7 @@
             ]
         },
         {
-            "name": "Test custom",
+            "name": "Evaluate Pose custom",
             "type": "debugpy",
             "request": "launch",
             "module": "src.eval_pose",
@@ -49,7 +48,7 @@
             }
         },
         {
-            "name": "Test re10k",
+            "name": "Evaluate Pose re10k",
             "type": "debugpy",
             "request": "launch",
             "module": "src.eval_pose",
@@ -65,6 +64,26 @@
                 "NCCL_DEBUG": "INFO",
                 "NCCL_DEBUG_SUBSYS": "ALL",
                 "CUDA_VISIBLE_DEVICES": "0"
+            }
+        },
+        {
+            "name": "Test re10k",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "src.main",
+            "console": "integratedTerminal",
+            "args": [
+                "+experiment=re10k",
+                "mode=test",
+                "wandb.name=re10k",
+                "dataset/view_sampler@dataset.re10k.view_sampler=evaluation",
+                "dataset.re10k.view_sampler.index_path=assets/evaluation_index_re10k.json",
+                "checkpointing.load=./pretrained_weights/re10k.ckpt test.save_image=true",
+            ],
+            "env": {
+                "NCCL_DEBUG": "INFO",
+                "NCCL_DEBUG_SUBSYS": "ALL",
+                "CUDA_VISIBLE_DEVICES": "4"
             }
         },
         {

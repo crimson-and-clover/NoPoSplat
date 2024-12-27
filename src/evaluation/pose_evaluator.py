@@ -215,6 +215,8 @@ class PoseEvaluator(LightningModule):
                 )
 
                 # Compute and log loss.
+                if "target" not in batch:
+                    batch["target"] = {}
                 batch["target"]["image"] = input_images_view2
                 total_loss = 0
                 for loss_fn in self.losses:
